@@ -1,0 +1,4 @@
+# Compiled files
+bin/
+*.o
+a.out
