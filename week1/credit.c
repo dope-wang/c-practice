@@ -1,17 +1,17 @@
 #include <cs50.h>
 #include <stdio.h>
 
-bool get_luhn(long l);
-string valid_check(long l);
-int get_length(long l);
-int get_prefix(long l);
+bool pass_luhn(long num);
+string card_type(long num);
+int get_length(long num);
+int get_prefix(long num);
 
 int main(void)
 {
     long number = get_long("Number: ");
-    if (get_luhn(number))
+    if (pass_luhn(number))
     {
-        printf("%s\n", valid_check(number));
+        printf("%s\n", card_type(number));
     }
     else
     {
@@ -21,15 +21,15 @@ int main(void)
     return 0;
 }
 
-bool get_luhn(long l)
+bool pass_luhn(long num)
 {
-    long l2 = l;
+    long l2 = num;
     int result = 0;
 
-    while (l > 0)
+    while (num > 0)
     {
-        l /= 10;
-        int digit = l % 10 * 2;
+        num /= 10;
+        int digit = num % 10 * 2;
         if (digit > 9)
         {
             result += digit / 10;
@@ -39,7 +39,7 @@ bool get_luhn(long l)
         {
             result += digit;
         }
-        l /= 10;
+        num /= 10;
     }
 
     while (l2 > 0)
@@ -51,15 +51,15 @@ bool get_luhn(long l)
     return result % 10 == 0;
 }
 
-string valid_check(long l)
+string card_type(long num)
 {
-    int prefix = get_prefix(l);
-    int len = get_length(l);
+    int prefix = get_prefix(num);
+    int len = get_length(num);
     if (len == 15 && (prefix == 34 || prefix == 37))
     {
         return "AMEX";
     }
-    else if (len == 16 && (prefix >=  51 && prefix <= 55))
+    else if (len == 16 && (prefix >= 51 && prefix <= 55))
     {
         return "MASTERCARD";
     }
@@ -73,23 +73,23 @@ string valid_check(long l)
     }
 }
 
-int get_length(long l)
+int get_length(long num)
 {
     int len = 1;
 
-    while (l >= 10)
+    while (num >= 10)
     {
-        l /= 10;
+        num /= 10;
         len += 1;
     }
     return len;
 }
 
-int get_prefix(long l)
+int get_prefix(long num)
 {
-    while (l >= 100)
+    while (num >= 100)
     {
-        l /= 10;
+        num /= 10;
     }
-    return (int) l;
+    return (int) num;
 }
