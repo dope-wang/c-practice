@@ -118,9 +118,50 @@
 - 加負號改成靠左對齊：%-6d
 - 表格對齊技巧：標題和資料用相同寬度，例如 %7s 對 %7d
 
+### getchar / putchar / EOF（K&R 1.5）
+- getchar() 每次從輸入取「一個」字元，putchar(c) 每次印出「一個」字元
+- 迴圈 while (c != EOF) 中，「拿」永遠比「印」早一步：putchar 印的是上一次 getchar 拿到的字元
+- 以輸入 AAA 加 Enter 為例：緩衝區是 A A A \n，迴圈跑 4 次，getchar 被呼叫 5 次，第 5 次緩衝區空了就停下來等
+- \n 對 getchar 來說只是普通字元（數字 10），迴圈只有遇到 EOF 才結束
+- EOF（End Of File）定義在 stdio.h，通常是 -1，不是真的字元，而是「沒有輸入了」的訊號
+- 產生 EOF：鍵盤在一行開頭按 Ctrl + D（Windows 是 Ctrl + Z）；讀檔案則讀到結尾自然產生
+- 輸入重新導向：./bin/xxx < notes.md 把檔案內容當作鍵盤輸入
+- 程式：character_input_output.c
+
+### 為什麼 getchar 要用 int 接收，不能用 char
+- getchar 要回傳兩種東西：所有可能的字元（256 種）＋ EOF
+- char 只有 1 byte，剛好只裝得下 256 種值，沒有空位留給 EOF
+- 用 char 接收，EOF 會和某個真實字元撞在一起，可能提早結束或永遠停不下來
+- 所以 getchar 回傳 int，接收的變數也必須是 int
+
+### 緩衝區（buffer）
+- 暫時存放資料的記憶體，讓資料累積後再一次搬運，減少和作業系統溝通的次數
+- Java 對照：BufferedReader / BufferedWriter；flush 是「立刻送出緩衝區內容」
+
+| 方式 | 英文 | 什麼時候送出 | 預設用在 |
+|------|------|------|------|
+| 行緩衝 | line buffered | 遇到 \n 或緩衝區滿 | 輸出到終端機（stdout） |
+| 完全緩衝 | fully buffered | 緩衝區滿了才送 | 輸出到檔案 |
+| 無緩衝 | unbuffered | 立刻送出 | 錯誤訊息（stderr） |
+
+- 輸入緩衝區：沒被取走的資料會留在原處（scanf 讀 ld 失敗，ld\n 留著被下一個 scanf 讀到）
+- 輸出緩衝區：printf("hello"); sleep(3); 會空白 3 秒才顯示，因為 hello 卡在緩衝區等 \n
+- 強制送出：fflush(stdout);
+- 程式要從鍵盤讀取前，標準函式庫會先清空 stdout，所以沒有 \n 的提示文字也能先顯示
+- stderr 不緩衝，避免程式崩潰時錯誤訊息還卡在緩衝區裡跟著消失
+- 除錯用的 printf 記得加 \n，否則程式崩潰時可能看不到訊息
+
+### 終端機的行模式（canonical mode）
+- 「等按 Enter 才把整行交給程式」是終端機的設定，不是 getchar 或 C 語言的規則
+- 目的：讓使用者在送出前可以用 Backspace 修改
+- stty -icanon 關閉行模式 → 每按一個鍵程式就立刻收到；stty icanon 恢復；出問題用 stty sane
+- 關閉行模式後 Ctrl + D 會失效（變成普通字元，數字 4），因為 EOF 是行模式「翻譯」出來的；Ctrl + C 仍有效，因為它是另一套機制（中斷訊號 signal，由 isig 控制）
+- vim、nano 會關閉行模式；輸入密碼時不顯示字元是關閉了回顯（stty -echo）
+- 用 < 從檔案讀取時沒有終端機參與，也就沒有等 Enter 這回事
+
 ## 待解問題
 - [ ] const char *prompt 的 * 是什麼意思？（預計 Lecture 4 指標）
-- [ ] 編譯的四個階段分別在做什麼？（預計 Lecture 2）
+- [x] 編譯的四個階段分別在做什麼？（預計 Lecture 2）
 
 ## 參考
 - 官方筆記：https://cs50.harvard.edu/x/notes/1/
