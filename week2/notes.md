@@ -1,8 +1,5 @@
 # Week 2：編譯、除錯、陣列與字串
 
-## 一句話總結
-
-
 ## 編譯器 clang
 
 ### 基本用法
@@ -84,6 +81,62 @@
 - C 的 const 不是真正的編譯期常數，用 const int N 當陣列大小有時會出問題；最保險用 #define N 3
 - 程式：scores_v3.c（固定大小）→ scores_v4.c（常數 N + 抽出 average 函式）
 
+## 字串（string）
+
+### 字串以 \0 結尾
+- C 的字串就是字元陣列，最後多一個 NUL 字元 '\0'（數值 0）當作結尾標記
+- "HI!" 看起來 3 個字元，實際佔 4 個 byte：
+
+| s[0] | s[1] | s[2] | s[3] |
+|------|------|------|------|
+| H | I | ! | \0 |
+| 72 | 73 | 33 | 0 |
+
+- \0 是編譯器在寫 "HI!" 時自動加上的，所以 s[3] 是合法存取，一定是 0
+- 字串沒有記錄自己的長度，printf("%s") 和 strlen 都是一路往下讀，遇到 0 才停
+- 自己實作 strlen：從 n = 0 開始，while (s[n] != '\0') n++;
+- 單引號 'H' 是一個 char；雙引號 "H" 是字串，佔 2 個 byte（H 和 \0）
+- 程式：hi.c、length.c
+
+### strlen 回傳 size_t，不是 int
+- 宣告：size_t strlen(const char *s);（需 #include <string.h>）
+- size_t 是無號整數型別，在 64 位元 Linux 上等於 unsigned long
+- printf 印 size_t 要用 %zu（跨平台正確）；%lu 在 64 位元 Linux 可用，但不保證其他平台
+- sizeof 的結果也是 size_t，所以 Week 1 印 sizeof 用的就是 %zu
+- 也可以先存進 int：int length = strlen(name); 再用 %i 印出（size_t 轉 int 的隱含轉換在 -Wall -Wextra 下不會警告）
+
+## ctype.h：字元判斷與轉換
+- 需 #include <ctype.h>，忘了引入會出現 implicit declaration 錯誤
+
+| 函式 | 用途 |
+|------|------|
+| islower(c) / isupper(c) | 是否為小寫 / 大寫字母 |
+| isalpha(c) | 是否為字母 |
+| isdigit(c) | 是否為數字 0–9 |
+| isalnum(c) | 是否為字母或數字 |
+| isspace(c) | 是否為空白（空格、\t、\n 等） |
+| ispunct(c) | 是否為標點符號 |
+| tolower(c) / toupper(c) | 轉成小寫 / 大寫 |
+
+- is 系列回傳「非 0」代表真，不保證是 1，判斷時寫 if (isdigit(c))，不要寫 == 1
+- toupper 傳入非小寫字元會原樣回傳，所以不需要先用 islower 判斷
+
+### 轉大寫的三個版本
+1. 手動：if (s[i] >= 'a' && s[i] <= 'z') 印 s[i] - 32（要記 ASCII 範圍和大小寫差 32）
+2. 函式判斷：if (islower(s[i])) 印 toupper(s[i])，else 原樣印
+3. 只用 toupper：printf("%c", toupper(s[i]));（7 行變 1 行）
+- 程式：uppercase.c
+
+### 進階注意
+- ctype 函式要求傳入值在 unsigned char 範圍（0–255）或 EOF
+- Linux 的 char 預設有號，中文 UTF-8 的 byte 會變成負數，直接傳入是未定義行為
+- 嚴謹寫法：toupper((unsigned char) s[i])
+
+### 迴圈裡的 strlen
+- for (int i = 0, n = strlen(s); i < n; i++)：strlen 只算一次
+- 寫成 i < strlen(s) 會每圈都呼叫，strlen 每次都從頭數，總次數約 n × n
+- 程式：string.c
+
 ## Command-line arguments（命令列參數）
 - 寫法：`int main(int argc, string argv[])`（標準 C 寫法是 `char *argv[]`）
 - argc：參數個數，「包含程式名稱本身」
@@ -92,6 +145,44 @@
 - 所有參數都是字串，要當數字用需轉換：`atoi(argv[1])`（需 #include <stdlib.h>）
 - 一定要先檢查 argc 再讀 argv，否則讀到不存在的位置
 - 參數錯誤時印出用法並 return 1，可用 `echo $?` 查看結束狀態
+- argv[argc] 保證是 NULL
+- 用引號可以讓含空格的內容變成同一個參數：./bin/args "David Malan" → argc 為 2
+
+### argv[0] 的意義
+- 是使用者「啟動程式時打的名稱」，不一定是原始檔名：在不同目錄執行，argv[0] 就不同
+- 用途一：印出使用說明 printf("Usage: %s name\n", argv[0]);，名稱永遠和使用者實際打的一致
+- 用途二：程式依名稱改變行為（例：BusyBox 一個執行檔扮演 ls、cp、mv 等上百個指令）
+- Java 對照：Java 程式由 java ClassName 啟動，真正執行的是 java 本身，所以 args 只放使用者參數
+
+## 密碼學基本觀念
+- 明文 plaintext、密文 ciphertext、加密法 cipher、金鑰 key
+- 密文 = 加密法(明文, 金鑰)；加密法通常公開，只有金鑰要保密
+- 凱撒密碼：每個字母往後移 k 位，k 是金鑰；非字母不變；超過 Z 繞回 A
+- 公式：密文字母編號 = (明文字母編號 + k) % 26（字母編號 A = 0 … Z = 25）
+- 解密：往反方向移 k 位
+- 不安全的原因：只有 25 種金鑰可暴力破解；英文字母頻率可做頻率分析
+- 現代加密（如 AES）同樣是「公開演算法 + 秘密金鑰」，但金鑰空間大到無法暴力破解
+
+## 結束狀態與錯誤處理
+- return 1 表示錯誤結束，echo $? 查看（只顯示緊接著上一個指令的結果）
+- 提前返回（early return / guard clause）：開頭先檢查，不符合就 return，主要邏輯不必包在 else 裡
+- 用 printf("Usage: %s name\n", argv[0]); 印出用法
+- 錯誤訊息慣例送到 stderr：fprintf(stderr, ...)，輸出導向檔案時錯誤訊息仍會顯示在螢幕上
+- 程式：greet.c（缺參數用預設值）、status.c（缺參數報錯結束）
+
+### stdout 與 stderr
+| 名稱 | 編號 | 用途 | 預設連到 |
+|------|------|------|------|
+| stdin | 0 | 標準輸入 | 鍵盤 |
+| stdout | 1 | 正常輸出 | 終端機 |
+| stderr | 2 | 錯誤訊息 | 終端機 |
+
+- printf(...) 等同 fprintf(stdout, ...)
+- 兩者預設都連到終端機，所以看起來一樣；但可以分開重新導向
+- `> file` 只導向 stdout；`2> file` 只導向 stderr；`2> /dev/null` 丟掉錯誤訊息；`> file 2>&1` 兩者都進檔案
+- 管道 `|` 只傳遞 stdout
+- 分開的意義：結果寫進檔案時，錯誤訊息不會混進去，而且仍即時顯示在畫面上
+- 實驗：./bin/status > out.txt，Usage（stderr）留在畫面上，Missing CLI Argument（stdout）進了檔案
 
 ## Java vs C 差異
 
@@ -102,6 +193,8 @@
 | 陣列預設值 | 自動初始化為 0 | 區域陣列是垃圾值，需自己初始化 |
 | 取得其他程式碼的資訊 | 讀 .class 檔 | 透過 #include 標頭檔取得原型 |
 | 小數常值 | 3.0 是 double，3.0f 是 float | 相同：3.0 是 double，3.0f 是 float |
+| 字串長度 | 物件內部記錄，s.length() | 沒有記錄，靠結尾的 \0 判斷，strlen 要從頭數 |
+| 字串越界 | charAt 丟出 StringIndexOutOfBoundsException | 不檢查，讀到相鄰記憶體的內容 |
 
 ## 踩過的坑
 
@@ -112,6 +205,20 @@
 - 解法：函式回傳和轉型都改用 double
 - 補充：3.0 是 double，3.0f 才是 float
 - 程式：scores_v3.c、scores_v4.c
+
+### strlen 用 %i 印出，編譯失敗
+- 現象：printf("%i\n", strlen(name)); 出現格式警告，因為 -Werror 變成編譯錯誤
+- 原因：strlen 回傳 size_t（unsigned long），%i 要求 int，型別對不上
+- 解法：改用 %zu；或先存進 int 變數再用 %i 印
+- 程式：length.c
+
+### s[4] 越界讀到隔壁字串的 %
+- 現象：string s = "HI!"; 印 s[4] 得到 37（'%'），程式沒有出錯
+- 原因：s[4] 已超出 "HI!\0" 的 4 個 byte；字串常值通常被編譯器緊密排放在同一區域，"HI!\0" 後面很可能緊接著某個 printf 格式字串，第一個字元剛好是 %
+- 驗證方法：印出 s[4] 到 s[7]，看是否為格式字串的開頭（如 %d %）
+- 這是未定義行為：換編譯器、換參數、多加一個字串，結果都可能不同，甚至崩潰
+- 編譯器沒警告的原因：string 是 char * 的別名，編譯器只知道「位置」，不知道後面有幾個 byte 屬於這個字串
+- 程式：hi.c
 
 ## 待解問題
 - [ ] string 和 char * 是什麼關係？（預計 Lecture 4 指標）
