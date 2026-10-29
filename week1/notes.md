@@ -101,6 +101,53 @@
 - 用 git mv 舊名 新名，Git 才會記錄成改名，而不是刪除加新增
 - 改名後用 make clean 清掉舊名稱的執行檔
 
+### printf 各型態的格式符號（K&R 1.5.2）
+
+#### 整數
+| 型態 | printf | 64 位元 Linux 大小 | 備註 |
+|------|------|------|------|
+| char（當字元印） | %c | 1 byte | 印出字元本身 |
+| char（當數字印） | %d | 1 byte | 印出 ASCII 碼，'A' → 65 |
+| short | %hd | 2 bytes | h = half |
+| int | %d 或 %i | 4 bytes | 兩者在 printf 裡完全相同 |
+| long | %ld | 8 bytes | K&R 1.5.2 的 long nc 用 %ld |
+| long long | %lld | 8 bytes | |
+| unsigned int | %u | 4 bytes | |
+| unsigned long | %lu | 8 bytes | |
+| unsigned long long | %llu | 8 bytes | |
+| size_t | %zu | 8 bytes | strlen、sizeof 的結果 |
+
+- 規則：基本字母決定解讀方式（d 有號、u 無號），修飾字母決定大小（h 短、l 長、ll 更長、z 代表 size_t）
+- Java 對照：Java 的 long 固定 8 bytes；C 的 long 在 64 位元 Windows 上只有 4 bytes，需要保證 8 bytes 用 long long
+
+#### 浮點數
+| 型態 | printf | 備註 |
+|------|------|------|
+| float | %f | 傳給 printf 時自動轉成 double |
+| double | %f | K&R 1.5.2 的 double nc 用 %.0f（不印小數） |
+| long double | %Lf | 大寫 L |
+| 科學記號 | %e | 如 1.234560e+03 |
+| 自動選擇 | %g | 選 %f 或 %e 中較短者，去掉尾端多餘的 0 |
+
+#### 其他
+| 用途 | printf | 範例 |
+|------|------|------|
+| 字串 | %s | "HI!" → HI! |
+| 十六進位 | %x / %X | 255 → ff / FF |
+| 八進位 | %o | 8 → 10 |
+| 記憶體位址 | %p | Lecture 4 指標會用到 |
+| 百分比符號本身 | %% | printf("100%%") → 100% |
+
+#### printf 和 scanf 的差異
+| 型態 | printf | scanf |
+|------|------|------|
+| float | %f | %f |
+| double | %f | %lf（必須加 l） |
+| char | %c | " %c"（前面加空格可跳過空白和換行） |
+
+- 原因：printf 收到的 float 會自動轉成 double，所以共用 %f；scanf 要寫進變數，必須精確知道變數大小
+- 型別不符是未定義行為，-Wall 會發出警告（例：strlen 配 %i 被擋下）
+
 ### printf 格式符號
 
 | 格式 | 意義 | 範例 | 輸出（[ ] 標示邊界） |
@@ -158,6 +205,39 @@
 - 關閉行模式後 Ctrl + D 會失效（變成普通字元，數字 4），因為 EOF 是行模式「翻譯」出來的；Ctrl + C 仍有效，因為它是另一套機制（中斷訊號 signal，由 isig 控制）
 - vim、nano 會關閉行模式；輸入密碼時不顯示字元是關閉了回顯（stty -echo）
 - 用 < 從檔案讀取時沒有終端機參與，也就沒有等 Enter 這回事
+
+### Ctrl + D 與 EOF 的三層關係
+
+| 層次 | 名稱 | 是什麼 |
+|------|------|------|
+| 終端機 | Ctrl + D（stty 的 eof = ^D） | 「立刻送出手上的內容」的控制鍵，不加 \n，本身被丟掉 |
+| 作業系統 | read 回報 0 | Unix 慣例：讀到 0 個 byte = 沒有資料了（檔案、管道、終端機皆同） |
+| C 語言 | EOF（-1） | getchar() 表示「拿不到字元了」的回傳值 |
+
+- 終端機的 eof 和 C 的 EOF 只是名字相同，不等價：前者是「按的鍵」，後者是「程式收到的結果」
+- 每次 Ctrl + D 做的事完全一樣；結果不同是因為按下當下終端機手上的內容不同
+- 手上有字元 → 送出那些字元，read 回報大於 0，程式照常處理
+- 手上是空的 → 送出 0 個 byte，read 回報 0，getchar() 才回傳 EOF
+- read 一次可拿到多個 byte，函式庫先存起來，getchar() 一個一個發；發完才再呼叫 read，getchar() 的「等待」其實是在 read 那裡等
+- 查看設定：stty -a | grep eof；可改成別的鍵（stty eof ^E），用 stty sane 恢復
+- 生活例子：bash 提示符號下空行按 Ctrl + D 會登出，因為 bash 收到 read 回報 0
+
+#### 實驗：字元計數程式
+| 操作 | read 依序回報 | 結果 |
+|------|------|------|
+| qwer → Enter → Ctrl + D | 5、0 | 5 characters（含 \n） |
+| qwer → Ctrl + D → Ctrl + D | 4、0 | 4 characters，接在 qwer 後面同一行印出 |
+| 直接 Ctrl + D | 0 | 0 characters，迴圈本體一次都沒執行 |
+| ab → Ctrl + D → cd → Ctrl + D → Ctrl + D | 2、2、0 | 4 characters |
+
+### 輸入緩衝區 vs 字串常值區
+| | 字串常值區 | 輸入緩衝區 |
+|------|------|------|
+| 存放什麼 | 程式碼裡寫死的字串，如 "HI!" | 執行時從鍵盤、檔案讀進來的資料 |
+| 何時決定內容 | 編譯時 | 執行時 |
+| 會變嗎 | 不會（唯讀） | 會，不斷被新資料覆蓋 |
+| 和 read 的關係 | 無 | read 把資料寫進這裡 |
+- Java 字串池存的是程式碼裡的字串常值，和 read 無關
 
 ## 待解問題
 - [ ] const char *prompt 的 * 是什麼意思？（預計 Lecture 4 指標）
