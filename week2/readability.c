@@ -4,22 +4,22 @@
 #include <stdio.h>
 #include <string.h>
 
-int get_words(string s);
-int get_letters(string s);
-int get_sentences(string s);
+int count_words(string s);
+int count_letters(string s);
+int count_sentences(string s);
 
 int main(void)
 {
     string text = get_string("Text: ");
     // get words by space
-    int words = get_words(text);
+    int words = count_words(text);
     // get letters by alpha
-    int letters = get_letters(text);
+    int letters = count_letters(text);
     // get by ? . !
-    int sentence = get_sentences(text);
+    int sentences = count_sentences(text);
     // index = 0.0588 * L - 0.296 * S - 15.8
-    float l = letters / (double)  words * 100;
-    float s = sentence / (double) words * 100;
+    double l = letters / (double) words * 100;
+    double s = sentences / (double) words * 100;
     int index = round(0.0588 * l - 0.296 * s - 15.8);
 
     if (index < 1)
@@ -38,7 +38,7 @@ int main(void)
     return 0;
 }
 
-int get_words(string s)
+int count_words(string s)
 {
     int result = 1;
     for (int i = 0, n = strlen(s); i < n; i++)
@@ -51,7 +51,7 @@ int get_words(string s)
     return result;
 }
 
-int get_letters(string s)
+int count_letters(string s)
 {
     int result = 0;
     for (int i = 0, n = strlen(s); i < n; i++)
@@ -64,7 +64,7 @@ int get_letters(string s)
     return result;
 }
 
-int get_sentences(string s)
+int count_sentences(string s)
 {
     int result = 0;
     for (int i = 0, n = strlen(s); i < n; i++)
