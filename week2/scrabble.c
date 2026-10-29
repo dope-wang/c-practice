@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int alpha_array[26] = {1, 3, 3, 2, 1, 4, 2, 4, 1, 8, 5, 1,
+const int POINTS[26] = {1, 3, 3, 2, 1, 4, 2, 4, 1, 8, 5, 1,
                     3, 1, 1, 3, 10, 1, 1, 1, 1, 4, 4, 8, 4, 10};
 
 int calculate_score(string s);
@@ -41,7 +41,7 @@ int calculate_score(string s)
     {
         if (isalpha(s[i]))
         {
-            sum += alpha_array[toupper(s[i]) - 'A'];
+            sum += POINTS[toupper(s[i]) - 'A'];
         }
     }
     return sum;
