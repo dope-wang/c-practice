@@ -106,6 +106,23 @@
 - sizeof 的結果也是 size_t，所以 Week 1 印 sizeof 用的就是 %zu
 - 也可以先存進 int：int length = strlen(name); 再用 %i 印出（size_t 轉 int 的隱含轉換在 -Wall -Wextra 下不會警告）
 
+### 字串在記憶體的哪裡（初步了解，詳見 Lecture 4）
+- string s1 = "HI!"; 建立兩樣東西：s1 在 stack 上，存的是「位址」；"HI!\0" 在唯讀資料區
+- string 其實是「指向字元的位址」，所以標準 C 寫成 char *
+- 相同內容的字串常值，編譯器可能共用同一份，但不保證
+- 字串常值不能修改（s1[0] = 'h'; 會崩潰）；char s1[] = "HI!"; 會在 stack 上複製一份，可修改
+- get_string 的結果在 heap 上（執行時才知道內容，函式庫用 malloc 要記憶體）
+
+| | C | Java |
+|------|------|------|
+| 變數本身 | stack 上，存位址 | stack 上，存參考 |
+| 字串常值放哪 | 唯讀資料區 | heap 裡的字串池 |
+| 相同常值共用 | 編譯器可能會，不保證 | 保證共用（s1 == s3 為 true） |
+| 內容可否修改 | 常值不可；char s[] 複製後可 | String 永遠不可變 |
+| 執行時產生的字串 | heap（malloc，自己 free） | heap（垃圾回收） |
+
+- 觀察位址：printf("%p\n", (void *) s1);
+
 ## ctype.h：字元判斷與轉換
 - 需 #include <ctype.h>，忘了引入會出現 implicit declaration 錯誤
 
