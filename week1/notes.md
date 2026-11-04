@@ -173,7 +173,7 @@
 - EOF（End Of File）定義在 stdio.h，通常是 -1，不是真的字元，而是「沒有輸入了」的訊號
 - 產生 EOF：鍵盤在一行開頭按 Ctrl + D（Windows 是 Ctrl + Z）；讀檔案則讀到結尾自然產生
 - 輸入重新導向：./bin/xxx < notes.md 把檔案內容當作鍵盤輸入
-- 程式：character_input_output.c
+- 程式：sec1_05_1_copy_io.c
 
 ### 為什麼 getchar 要用 int 接收，不能用 char
 - getchar 要回傳兩種東西：所有可能的字元（256 種）＋ EOF
