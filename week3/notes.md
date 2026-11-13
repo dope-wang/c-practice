@@ -127,6 +127,60 @@
 - Java 寫字串要用 equals 的直覺，在 C 換成 strcmp(...) == 0 即可
 - 正負號的主要用途是排序（Lecture 3 後半），和 Java 的 Comparator 是同一個概念
 
+### struct：把相關的資料打包在一起
+
+#### 是什麼
+- 自訂一個新的資料型別，裡面可以包含多個欄位（成員）
+- typedef 幫它取一個型別名稱，之後就能像 int 一樣直接宣告
+
+#### 可以存放什麼
+- 任何型別都可以當欄位，而且可以混合：int、double、char、string、陣列，甚至另一個 struct
+
+    typedef struct
+    {
+        string name;    // 字串
+        int age;        // 整數
+        double gpa;     // 浮點數
+    } student;
+
+    student s;
+    s.name = "Kurt";
+    s.age = 30;
+    s.gpa = 3.8;
+
+- 用 . 存取欄位：s.name、s.age
+- 宣告時直接初始化（指定初始化，C99）：
+  student s = {.name = "Kurt", .age = 30, .gpa = 3.8};
+
+#### 特性
+- 是「值」不是「參考」：指定（b = a）和傳進函式都會複製整份內容
+  - 函式裡改了 struct 的欄位，呼叫端不受影響（和 int 一樣）
+  - 要讓函式改到原本的 struct，需傳位址（指標），用 -> 存取（Lecture 4、5）
+- 沒有方法、沒有建構子、沒有封裝，欄位全部公開
+- 宣告後欄位是垃圾值（區域變數），要自己指定或用初始化列表
+- 不能用 == 比較兩個 struct，要逐欄比較（字串欄位還要用 strcmp）
+- 欄位在記憶體中連續排放；sizeof(student) 可能比各欄位加總大，因為編譯器會為了對齊補空位（padding）
+
+#### 什麼時候用
+- 一筆資料有多個相關屬性時：person（名字、電話）、student（名字、年齡、成績）、point（x、y）
+- 取代平行陣列：people[i].name 和 people[i].number 綁在一起，不會因為兩個陣列長度不一致而越界（phonebook.c → phonebook_struct.c）
+- 函式需要回傳多個值時：C 的函式只能回傳一個值，但可以回傳一個 struct
+- 函式參數太多時：把相關參數打包成一個 struct 傳入
+- 後續課程：Lecture 4 讀寫 BMP 圖檔的標頭、Lecture 5 鏈結串列的節點（node），都是用 struct 描述
+
+#### Java 對照
+| | C struct | Java record | Java DTO |
+|------|------|------|------|
+| 用途 | 打包資料 | 打包資料 | 打包資料 |
+| 方法 | 不能有 | 可以有 | 可以有 |
+| 可否修改 | 可以 | 不可以 | 可以 |
+| 指定、傳參數 | 複製整份內容 | 複製參考 | 複製參考 |
+| 比較內容 | 逐欄比較 | equals 自動比較 | equals 要自己寫 |
+
+- 一句話：struct 在「用途」上像 DTO 或 record，在「行為」上像 int
+- Java 的 new Person[3] 每格是 null，要再 new；C 的 person people[3] 宣告完三個 person 就存在了
+- 程式：phonebook_struct.c
+
 ## 踩過的坑
 
 ### 測試要包含邊界位置
