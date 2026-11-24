@@ -147,7 +147,7 @@
 
 ### 進階注意
 - ctype 函式要求傳入值在 unsigned char 範圍（0–255）或 EOF
-- Linux 的 char 預設有號，中文 UTF-8 的 byte 會變成負數，直接傳入是未定義行為
+- char 有號或無號由平台決定（x86 Linux 有號、ARM Linux 無號，見 kr/ch2 筆記）；在有號的平台上，中文 UTF-8 的 byte 會變成負數，直接傳入是未定義行為
 - 嚴謹寫法：toupper((unsigned char) s[i])
 
 ### 迴圈裡的 strlen
